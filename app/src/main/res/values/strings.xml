@@ -1,0 +1,165 @@
+<resources>
+    <string name="app_name">trianner4</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_today">Hoy</string>
+    <string name="nav_calendar">Calendario</string>
+    <string name="nav_routines">Rutinas</string>
+    <string name="nav_wellness">Bienestar</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Day status chips -->
+    <string name="status_training">ENTRENAMIENTO</string>
+    <string name="status_adapted">ADAPTADO</string>
+    <string name="status_deload">DESCARGA</string>
+    <string name="status_frozen">CONGELADO</string>
+    <string name="status_rest">DESCANSO</string>
+
+    <!-- Phase labels -->
+    <string name="phase_pre">Pre</string>
+    <string name="phase_core">Núcleo</string>
+    <string name="phase_post">Post</string>
+    <string name="phase_injected_count">+%d inyect.</string>
+
+    <!-- Streak card -->
+    <string name="streak_weekly_label">Racha semanal</string>
+    <string name="streak_adherence_label">Adherencia rutina</string>
+
+    <!-- Adaptation banner -->
+    <string name="today_adaptation_banner">Sesión adaptada por: %s</string>
+    <string name="today_adaptation_banner_cta">Ver detalles ›</string>
+
+    <!-- Adaptation detail sheet -->
+    <string name="adaptation_sheet_title">Adaptaciones para hoy</string>
+    <string name="adaptation_sheet_due_to">Sesión modificada por: %s</string>
+    <string name="adaptation_injected_pre">Movilidad añadida al Calentamiento (Pre)</string>
+    <string name="adaptation_injected_post">Recuperación añadida al Post-entreno (Post)</string>
+    <string name="adaptation_load_reduced">Carga ajustada en Núcleo</string>
+    <string name="adaptation_sheet_cta">Aceptar y comenzar</string>
+
+    <!-- CTA + secondary buttons -->
+    <string name="today_cta_start">INICIAR SESIÓN</string>
+    <string name="today_btn_report_discomfort">Reportar molestia</string>
+    <string name="today_btn_skip_to_rest">Saltar a descanso</string>
+
+    <!-- Rest / Deload / Frozen cards -->
+    <string name="rest_day_title">Día de descanso</string>
+    <string name="rest_day_subtitle">Tu recuperación protege la racha</string>
+    <string name="deload_day_title">Semana de descarga</string>
+    <string name="deload_day_subtitle">Volumen al 60 % · escucha tu cuerpo</string>
+    <string name="frozen_title">Modo Congelación</string>
+    <string name="frozen_subtitle">Rachas protegidas · descansa sin preocupaciones</string>
+
+    <!-- Calendario -->
+    <string name="calendar_prev_month">Mes anterior</string>
+    <string name="calendar_next_month">Mes siguiente</string>
+    <string name="calendar_day_empty">Sin entrenamiento registrado\npara este día.</string>
+
+    <!-- Rutinas -->
+    <string name="routines_fab_create">Crear rutina</string>
+    <string name="routines_biblioteca">Biblioteca de ejercicios</string>
+    <string name="routines_empty">No hay rutinas creadas.\nToca + para crear una.</string>
+    <string name="routines_new_title">Nueva rutina</string>
+    <string name="routines_edit_title">Editar rutina</string>
+    <string name="phase_pre_description">Movilidad y calentamiento</string>
+    <string name="phase_core_description">Fuerza con sobrecarga progresiva</string>
+    <string name="phase_post_description">Recuperación y fisioterapia</string>
+    <string name="biblioteca_empty">La biblioteca de ejercicios\naparece aquí.</string>
+    <string name="ejercicio_detail_title">Detalle del ejercicio</string>
+
+    <!-- Ajustes -->
+    <string name="settings_section_account">Cuenta</string>
+    <string name="settings_section_training">Entrenamiento</string>
+    <string name="settings_section_data">Datos</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_profile">Perfil</string>
+    <string name="settings_progression">Triggers de progresión</string>
+    <string name="settings_freeze">Modo Congelación</string>
+    <string name="settings_backup">Backup y restauración</string>
+    <string name="settings_about">Sobre la app</string>
+    <string name="backup_description">Crea una copia de seguridad de todos tus datos (rutinas, sesiones, progreso) en un archivo JSON.</string>
+    <string name="backup_action_export">Exportar Backup</string>
+
+    <!-- Sesión activa — AppBar y stepper -->
+    <string name="session_phase_pre">Fase Pre — Movilidad</string>
+    <string name="session_phase_core">Fase Núcleo — Fuerza</string>
+    <string name="session_phase_post">Fase Post — Recuperación</string>
+    <string name="session_exercise_counter">Ejercicio %1$d de %2$d</string>
+    <string name="session_abandon_title">¿Abandonar sesión?</string>
+    <string name="session_abandon_message">Se perderá el progreso no guardado.</string>
+    <string name="session_abandon_confirm">Abandonar</string>
+    <string name="session_abandon_cancel">Continuar</string>
+    <string name="session_content_placeholder">El flujo de la sesión\nse implementa aquí.</string>
+    <string name="session_injected_badge">🩹 Adaptado</string>
+
+    <!-- Fase Pre/Post — ejercicios asistenciales -->
+    <string name="session_timer_start">Iniciar</string>
+    <string name="session_timer_pause">Pausar</string>
+    <string name="session_timer_resume">Reanudar</string>
+    <string name="session_timer_skip">Saltar</string>
+    <string name="session_reps_done">✓ Completado</string>
+    <string name="session_reps_target">%1$d repeticiones</string>
+    <string name="session_next_exercise">Siguiente ejercicio</string>
+    <string name="session_finish_phase">Finalizar fase</string>
+    <string name="session_prev_exercise">Anterior</string>
+
+    <!-- Fase Núcleo — tabla de series -->
+    <string name="session_set_col_set">Set</string>
+    <string name="session_set_col_target">Objetivo</string>
+    <string name="session_set_col_weight">Peso (kg)</string>
+    <string name="session_set_col_reps">Reps</string>
+    <string name="session_set_col_rir">RIR</string>
+    <string name="session_confirm_set">✓</string>
+    <string name="session_set_confirmed_label">Confirmada</string>
+    <string name="session_rir_label">RIR %d</string>
+
+    <!-- Temporizador de descanso inter-series -->
+    <string name="session_rest_title">Descanso</string>
+    <string name="session_rest_skip">Saltar descanso</string>
+    <string name="session_rest_next_set">Siguiente serie →</string>
+
+    <!-- Resumen final -->
+    <string name="session_summary_title">¡Sesión completada!</string>
+    <string name="session_summary_tonnage">Tonelaje total</string>
+    <string name="session_summary_tonnage_value">%.1f kg</string>
+    <string name="session_summary_duration">Duración</string>
+    <string name="session_summary_sets">Series completadas</string>
+    <string name="session_summary_avg_rir">RIR promedio</string>
+    <string name="session_summary_avg_rir_value">%.1f</string>
+    <string name="session_survey_title">¿Cómo te fue?</string>
+    <string name="session_survey_fatigue">Fatiga percibida</string>
+    <string name="session_survey_pain">Dolor / molestia general</string>
+    <string name="session_survey_readiness">Disposición para mañana</string>
+    <string name="session_save_close">Guardar y cerrar</string>
+
+    <!-- Error -->
+    <string name="session_error_no_routine">No hay rutina activa para iniciar sesión.</string>
+    <string name="session_error_generic">Error al cargar la sesión.</string>
+
+    <!-- Acciones globales -->
+    <string name="action_back">Atrás</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_create">Crear</string>
+    <string name="action_search">Buscar ejercicios...</string>
+    <string name="placeholder_coming_soon">Próximamente…</string>
+
+    <!-- Rutinas Editor -->
+    <string name="routines_name_label">Nombre de la rutina</string>
+    <string name="routines_frequency_label">Frecuencia</string>
+    <string name="routines_frequency_every">Cada %d días</string>
+    <string name="routines_add_exercise">Añadir ejercicio</string>
+
+    <!-- Biblioteca -->
+    <string name="biblioteca_add_exercise">Añadir ejercicio</string>
+    <string name="biblioteca_create_exercise">Nuevo ejercicio</string>
+    <string name="exercise_name_label">Nombre del ejercicio</string>
+    <string name="exercise_type_label">Tipo</string>
+    <string name="exercise_type_strength">Fuerza</string>
+    <string name="exercise_type_assistive">Asistencial</string>
+    <string name="exercise_tags_label">Tags (Articulación/Músculo)</string>
+    <string name="exercise_search_placeholder">Buscar...</string>
+
+    <!-- Widget -->
+    <string name="widget_name">Trianner Hoy</string>
+    <string name="widget_description">Estado de tu entrenamiento y racha diaria.</string>
+</resources>

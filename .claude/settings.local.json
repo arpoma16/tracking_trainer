@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew clean *)",
+      "Bash(./gradlew :app:compileDebugKotlin --quiet)",
+      "Bash(grep -E \"\\\\.\\(kt|gradle|xml\\)$\")",
+      "Bash(xargs cat)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(./gradlew :app:assembleDebug)",
+      "Bash(./gradlew :app:kspDebugKotlin)"
+    ]
+  }
+}

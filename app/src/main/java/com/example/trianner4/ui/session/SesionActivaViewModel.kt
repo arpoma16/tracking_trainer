@@ -66,6 +66,34 @@ class SesionActivaViewModel @Inject constructor(
             runCatching {
                 val existing = sessionDao.getActiveSession()
                 if (existing != null) {
+                    if (existing.routineId == routineId) {
+                        // Si no se ha registrado ninguna serie ni log asistencial, los snapshots
+                        // pueden estar desactualizados respecto a cambios en la rutina.
+                        val existingSnapshots = sessionDao.getSnapshotsForSession(existing.id)
+                        val hasAnyLogs = existingSnapshots.any { snap ->
+                            setLogDao.getForSnapshot(snap.id).isNotEmpty() ||
+                                    assistiveLogDao.getForSnapshot(snap.id) != null
+                        }
+                        if (!hasAnyLogs) {
+                            val freshExercises = routineDao.getPhaseExercisesWithExercise(routineId)
+                            phaseExerciseConfig = freshExercises
+                            sessionDao.replaceSnapshots(
+                                sessionId = existing.id,
+                                snapshots = freshExercises.map { rpe ->
+                                    SessionExerciseSnapshotEntity(
+                                        sessionId = 0,
+                                        phase = rpe.routinePhaseExercise.phase,
+                                        exerciseId = rpe.exercise.id,
+                                        exerciseNameSnapshot = rpe.exercise.name,
+                                        chainVariantLevelSnapshot = null,
+                                        wasSubstituted = false,
+                                        substitutionReason = null,
+                                        orderIndex = rpe.routinePhaseExercise.orderIndex
+                                    )
+                                }
+                            )
+                        }
+                    }
                     loadSession(existing.id)
                     return@runCatching
                 }
@@ -74,9 +102,13 @@ class SesionActivaViewModel @Inject constructor(
                 phaseExerciseConfig = exercises
 
                 val now = System.currentTimeMillis()
+                val todayMidnight = LocalDate.now()
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
                 val session = SessionEntity(
                     routineId = routineId,
-                    date = now,
+                    date = todayMidnight,
                     startedAt = now,
                     endedAt = null,
                     status = SessionStatus.ACTIVE,
@@ -113,7 +145,12 @@ class SesionActivaViewModel @Inject constructor(
             _uiState.value = SesionActivaUiState.Loading
             runCatching {
                 sessionId = id
-                sessionStartMs = sessionDao.getById(id)?.startedAt ?: System.currentTimeMillis()
+                val session = sessionDao.getById(id)
+                sessionStartMs = session?.startedAt ?: System.currentTimeMillis()
+                // Cargar config de fases si no está ya cargada (ej. reanudación de sesión existente)
+                if (phaseExerciseConfig.isEmpty() && session != null) {
+                    phaseExerciseConfig = routineDao.getPhaseExercisesWithExercise(session.routineId)
+                }
                 allSnapshots = sessionDao.getSnapshotsForSession(id)
                 currentPhaseIndex = 0
                 currentExerciseIndex = 0
@@ -146,12 +183,18 @@ class SesionActivaViewModel @Inject constructor(
     }
 
     private fun advancePhase() {
-        if (currentPhaseIndex < phaseOrder.lastIndex) {
-            currentPhaseIndex++
+        var next = currentPhaseIndex + 1
+        // Saltear fases vacías
+        while (next <= phaseOrder.lastIndex && allSnapshots.none { it.phase == phaseOrder[next] }) {
+            next++
+        }
+        if (next > phaseOrder.lastIndex) {
+            _uiState.value = SesionActivaUiState.SurveyPending
+        } else {
+            currentPhaseIndex = next
             currentExerciseIndex = 0
             showCurrentExercise()
         }
-        // Si se completan todas las fases, la UI invoca closeSession()
     }
 
     // ── Registro de series STRENGTH ────────────────────────────────────────────
@@ -354,6 +397,14 @@ class SesionActivaViewModel @Inject constructor(
                     it.routinePhaseExercise.phase == phaseOrder[currentPhaseIndex]
                 }
 
+                val isLastInPhase = currentExerciseIndex == phaseSnaps.lastIndex
+                val isLastExerciseOverall = isLastInPhase && run {
+                    val hasNextNonEmptyPhase = ((currentPhaseIndex + 1)..phaseOrder.lastIndex).any { idx ->
+                        allSnapshots.any { it.phase == phaseOrder[idx] }
+                    }
+                    !hasNextNonEmptyPhase
+                }
+
                 _uiState.value = SesionActivaUiState.PhaseActive(
                     sessionId = sessionId,
                     phase = phaseOrder[currentPhaseIndex],
@@ -369,7 +420,8 @@ class SesionActivaViewModel @Inject constructor(
                     overallProgress = calculateOverallProgress(),
                     isAdaptedExercise = snap.wasSubstituted,
                     targetRir = config?.routinePhaseExercise?.targetRir,
-                    restSec = config?.routinePhaseExercise?.restSec ?: 90
+                    restSec = config?.routinePhaseExercise?.restSec ?: 90,
+                    isLastExerciseOverall = isLastExerciseOverall,
                 )
             }.onFailure { e ->
                 _uiState.value = SesionActivaUiState.Error(e.message ?: "Error al cargar ejercicio")

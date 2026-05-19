@@ -1,27 +1,21 @@
-# CLAUDE.md — App Android de Entrenamiento de Fuerza
+# AGENTS.md — App Android de Entrenamiento de Fuerza
 
 **Persistencia:** 100% local (Room/SQLite). Sin backend remoto. **Plataforma:** Android nativo.
+
 > **Arquitectura completa → [`ARQUITECTURA.md`](./ARQUITECTURA.md)** (leer antes de implementar).
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| UI | Jetpack Compose |
-| Arquitectura | MVVM + Repository |
-| BD | Room (SQLite) |
-| Background | WorkManager |
-| Prefs | DataStore |
-| Widget | Glance |
-| Lenguaje | Kotlin |
+- UI: Jetpack Compose · Arquitectura: MVVM + Repository
+- BD: Room (SQLite) v3 · Background: WorkManager · Prefs: DataStore · Widget: Glance · Kotlin
 
 ## Estructura — 5 tabs
 
-1. **Hoy** — Dashboard + CTA "Iniciar Sesión"
-2. **Calendario** — Vista mensual con código de colores
-3. **Rutinas** — CRUD rutinas/ejercicios
-4. **Bienestar** — Molestias y condiciones crónicas
-5. **Ajustes** — Perfil, backup, preferencias
+- **Hoy** — Dashboard + lista de rutinas del día con estado Pendiente/Completada
+- **Calendario** — Vista mensual con código de colores
+- **Rutinas** — CRUD rutinas/ejercicios
+- **Bienestar** — Molestias y condiciones crónicas
+- **Ajustes** — Perfil, backup, preferencias
 
 ## Reglas de Negocio Clave
 
@@ -31,16 +25,18 @@
 - **Adaptación:** `DiscomfortTag` ↔ `ExerciseTag` → reduce carga, sustituye/inyecta ejercicios. Persiste `AdaptationLog`.
 - **Cadenas biomecánicas:** jerarquía de variantes; promoción requiere `GraduationCriterion`.
 - **Inmutabilidad:** `SessionExerciseSnapshot`, `SetLog`, `AssistiveLog` no editables tras cerrar sesión.
+- **Múltiples rutinas/día:** `TodayRepository` filtra todas las rutinas activas para hoy; cada una tiene estado `isDone` independiente.
 
-## Entidades Room (25 + 1 = 26) — DB v2
+## Entidades Room (26) — DB v3
 
-`UserProfile`(1) · `Routine` · `RoutineSchedule` · `RoutinePhaseExercise` · `Exercise`(STRENGTH|ASSISTIVE) · `BiomechanicalChain` · `ChainVariant` · `GraduationCriterion` · `Tag` · `ExerciseTag` · `Session` · `SessionExerciseSnapshot` · `SetLog` · `AssistiveLog` · `BodyZone` · `Discomfort` · `DiscomfortTag` · `AdaptationLog` · `StreakState`(1) · `DeloadCycle` · `FreezePeriod` · `ProgressionTrigger` · `BackupMetadata` · **`PlannedSession`**
-
-**`PlannedSession`** (`planned_session`) — materializa cada ocurrencia de `RoutineSchedule` en un registro rastreable.
-- `id`, `routineId` FK→routine CASCADE, `plannedDate` (epoch ms medianoche)
-- `status: PlannedSessionStatus` — `PENDING | COMPLETED | ROLLED_FORWARD | SKIPPED`
-- `originalDate?` — fecha raíz de la cadena si fue roll-forward; `linkedSessionId?` — FK lógica a `session`
-- UNIQUE `(routineId, plannedDate)`
+- `UserProfile` · `Routine` · `RoutineSchedule` · `RoutinePhaseExercise`
+- `Exercise` (STRENGTH|ASSISTIVE; +`defaultSets/Reps/Rir/DurationSec` desde v3)
+- `BiomechanicalChain` · `ChainVariant` · `GraduationCriterion`
+- `Tag` · `ExerciseTag`
+- `Session` · `SessionExerciseSnapshot` · `SetLog` · `AssistiveLog`
+- `BodyZone` · `Discomfort` · `DiscomfortTag` · `AdaptationLog`
+- `StreakState` (1) · `DeloadCycle` · `FreezePeriod` · `ProgressionTrigger`
+- `BackupMetadata` · `PlannedSession`
 
 ## Convenciones
 
@@ -48,6 +44,7 @@
 - Strings: siempre por clave de localización, nunca hardcoded.
 - Accesibilidad: color codes + icono/etiqueta (TalkBack). Inputs numéricos accesibles.
 - RIR color: 0–1 rojo · 2–3 verde · 4+ ámbar.
+- `session.date` siempre = midnight epoch (`atStartOfDay`).
 
 ## Grafo de Navegación
 
@@ -70,46 +67,35 @@ NavHost (startDestination = hoy_graph)
 
 ### ✅ Completado
 
-- **Modelo de datos:** 26 entidades Room + DAOs + `AppDatabase` v2 + `Converters`.
-- **Navegación base:** `AppNavigation` con 5 tabs + modal sesión activa.
-- **Pantalla Hoy (`TodayScreen`):** estado reactivo, banner de adaptación, bottom sheet, CTA funcional.
-- **Pantalla Calendario:** grid mensual navegable + `CalendarioDiaScreen` (snapshot read-only).
+- **Modelo de datos:** todos los DAOs y entidades (ver lista arriba).
+- **Navegación:** 5 tabs + modal sesión activa.
+- **Pantalla Hoy:** múltiples rutinas del día, badge Pendiente/Completada por rutina, CTA deshabilitado al completar, reactivo vía `observeAllByDate`.
+- **Pantalla Calendario:** grid mensual navegable + `CalendarioDiaScreen` (snapshot read-only). Sesiones indexadas por midnight epoch.
 - **Pantalla Rutinas:** lista + FAB + `RutinaEditorScreen` + `BibliotecaEjerciciosScreen`.
-- **Pantalla Bienestar:** estructura base (`BienestarScreen`).
-- **Pantalla Ajustes:** secciones + sub-pantallas (Perfil, Triggers, Backup).
-- **`TodayRepository` + `AdaptationResolver`:** lógica de adaptación por molestia.
-- **`SesionActivaViewModel` + `SesionActivaScreen`:** sesión completa, timers, persistencia, resumen final.
-- **Motor de progresión — UseCase de graduación.**
-- **Motor de rachas — `PlannedSession` + roll-forward + streak calc** ← *último hito*
+- **Pantalla Bienestar:** flujo completo de registro de molestias con `ModalBottomSheet`.
+- **Pantalla Ajustes:** Perfil, Triggers de Progresión, Backup.
+- **`TodayRepository` + `AdaptationResolver`:** adaptación por molestia; soporta N rutinas/día.
+- **`SesionActivaViewModel` + `SesionActivaScreen`:** flujo PRE→NÚCLEO→POST, timers, `SurveyPending` state, persistencia, resumen final.
+- **Motor de progresión** — `CheckGraduationEligibilityUseCase`.
+- **Motor de rachas** — `PlannedSession` + roll-forward + streak calc.
+- **Widget Glance** — Home Screen + Deep Linking.
+- **CRUD Rutinas/Ejercicios** — editor de rutina, biblioteca global, integración.
+- **DB v3** — `MIGRATION_2_3` añade `defaultSets/Reps/Rir/DurationSec` a `Exercise`.
+- **Seed de ejercicios** — `ExerciseSeeder` inserta 5 ejercicios STRENGTH por defecto al arrancar (Press Banca, Sentadilla, Peso Muerto, Jalón, Press Militar).
 
 ### 🔲 Pendiente
 
 - Integrar `CheckGraduationEligibilityUseCase` en `SesionActivaViewModel.closeSession()`.
-- Diálogo UI de criterio de graduación (`GraduationDialog` Compose).
+- Diálogo UI de graduación (`GraduationDialog` Compose).
 - Flujo completo de Bienestar (CRUD molestias, selector jerárquico).
-- Widget Glance.
 - Sistema de Backup/Restore (export JSON/DB).
 - Notificaciones push (descanso inter-series, recordatorios).
 
-## Último Cambio — Motor de Rachas (Consistencia Semanal + Adherencia a Rutina)
+## Último Cambio — Multi-rutina + Estado por Rutina en TodayScreen
 
-**Archivos nuevos:** `PlannedSessionEntity.kt` · `PlannedSessionDao.kt` · `UserProfileDao.kt` · `MaterializePlannedSessionsUseCase.kt` · `UpdateStreakUseCase.kt`
-**Archivos modificados:** `Enums.kt` · `Converters.kt` · `SessionDao.kt` · `AppDatabase.kt` (v2 + `MIGRATION_1_2`) · `DatabaseModule.kt` · `SesionActivaViewModel.kt` · `TodayViewModel.kt`
-
-### DAOs nuevos
-- **`PlannedSessionDao`** — `getOverduePending` · `markRolledForward` · `markCompleted` · `getByRoutineAndDate` · `getRecentForAdherenceStreak` · `insertAll` (IGNORE).
-- **`UserProfileDao`** — `get()` / `observe()` / `upsert()` sobre el singleton.
-
-### `SessionDao` — query añadida
-- `countCompletedInRange(startEpoch, endEpoch): Int` — para la racha semanal.
-
-### UseCases (`domain/streak/`)
-- **`MaterializePlannedSessionsUseCase`** — genera `PlannedSession` PENDING para los próximos 14 días; idempotente (INSERT OR IGNORE). Llama a `TodayViewModel.init`.
-- **`UpdateStreakUseCase`** — tres pasos en orden:
-  1. **Roll-forward**: `PENDING` con `plannedDate < hoy` → `ROLLED_FORWARD` + nuevo `PENDING` para `+1 día`. Cascada ASC si hay varios días perdidos. La racha no se rompe.
-  2. **Racha Semanal**: itera semanas ISO hacia atrás (máx. 52). Semana actual no penaliza si aún no cumplió el target. Rompe al encontrar semana pasada < `weeklyTargetSessions`.
-  3. **Racha de Adherencia**: recorre últimas 60 `PlannedSession` (excluye `ROLLED_FORWARD` en DB). `COMPLETED` +1; `SKIPPED` o `PENDING` pasado → corta.
-
-### Integración
-- `TodayViewModel.init` → `materializePlannedSessions()` + `updateStreak()` (cada apertura de app).
-- `SesionActivaViewModel.closeSession()` → `markCompleted(plannedId, sessionId)` + `updateStreak()`.
+- **`TodayUiState`:** añadido `TodayRoutineItem(routineId, routineName, plan, isDone)`; `Ready` ahora tiene `routines: List<TodayRoutineItem>` en lugar de campos sueltos.
+- **`SessionDao`:** nuevo `observeAllByDate(epoch): Flow<List<SessionEntity>>`.
+- **`TodayRepository`:** `firstOrNull` → `filter`; itera todas las rutinas del día; `overallDayStatus` = ADAPTED > DELOAD > TRAINING.
+- **`TodayViewModel`:** combina con `observeAllByDate`; marca `isDone` por `routineId` en sesiones completadas.
+- **`TodayScreen`:** `ReadyContent` usa `items(state.routines)` → `RoutineCard` por rutina con badge `RoutineStatusBadge` ("⏳ Pendiente" / "✓ Completada") y CTA deshabilitado si `isDone`.
+- **`TrainingWidget`:** adaptado a `state.routines.firstOrNull()?.routineName`.

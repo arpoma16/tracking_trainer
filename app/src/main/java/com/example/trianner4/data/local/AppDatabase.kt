@@ -76,8 +76,8 @@ import com.example.trianner4.data.local.entity.UserProfileEntity
         BackupMetadataEntity::class,
         PlannedSessionEntity::class,
     ],
-    version = 2,
-    exportSchema = true
+    version = 3,
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -128,6 +128,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Añade columnas de configuración por defecto a exercise
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `exercise` ADD COLUMN `defaultSets`        INTEGER")
+                db.execSQL("ALTER TABLE `exercise` ADD COLUMN `defaultReps`        INTEGER")
+                db.execSQL("ALTER TABLE `exercise` ADD COLUMN `defaultRir`         INTEGER")
+                db.execSQL("ALTER TABLE `exercise` ADD COLUMN `defaultDurationSec` INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -135,7 +145,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "training_app.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

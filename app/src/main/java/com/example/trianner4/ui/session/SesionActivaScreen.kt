@@ -61,14 +61,17 @@ fun SesionActivaScreen(
         onSessionFinished = onSessionFinished,
         onStartAssistiveTimer = viewModel::startAssistiveTimer,
         onPauseAssistiveTimer = viewModel::pauseAssistiveTimer,
-        onCompleteAssistive = { dur, reps, relief, discomfortId -> 
-            viewModel.completeAssistive(dur, reps, relief, discomfortId) 
+        onCompleteAssistive = { dur, reps, relief, discomfortId ->
+            viewModel.completeAssistive(dur, reps, relief, discomfortId)
         },
         onNextExercise = viewModel::nextExercise,
         onPrevExercise = viewModel::previousExercise,
         onUpdatePendingSet = viewModel::updatePendingSet,
         onConfirmSet = { idx, rest -> viewModel.confirmSet(idx, rest ?: 90) },
-        onSkipRest = viewModel::skipRest
+        onSkipRest = viewModel::skipRest,
+        onCloseWithSurvey = { fatigue, pain, readiness ->
+            viewModel.closeSession(fatigue, pain, readiness)
+        },
     )
 }
 
@@ -83,7 +86,8 @@ fun SesionActivaScreenContent(
     onPrevExercise: () -> Unit,
     onUpdatePendingSet: (Int, Double?, String?, Int, Int) -> Unit,
     onConfirmSet: (Int, Int?) -> Unit,
-    onSkipRest: () -> Unit
+    onSkipRest: () -> Unit,
+    onCloseWithSurvey: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     when (val state = uiState) {
         is SesionActivaUiState.Idle,
@@ -109,6 +113,13 @@ fun SesionActivaScreenContent(
                 onUpdatePendingSet = onUpdatePendingSet,
                 onConfirmSet = onConfirmSet,
                 onSkipRest = onSkipRest
+            )
+        }
+
+        is SesionActivaUiState.SurveyPending -> {
+            SurveyContent(
+                onSubmit = onCloseWithSurvey,
+                onSkip = onSessionFinished,
             )
         }
 
@@ -389,6 +400,7 @@ private fun AssistiveExerciseContent(
             NavigationButtons(
                 canGoBack = state.exerciseIndex > 0,
                 isLastExercise = state.exerciseIndex >= state.totalExercisesInPhase - 1,
+                isLastExerciseOverall = state.isLastExerciseOverall,
                 isCompleted = timer?.isCompleted == true,
                 onPrev = onPrev,
                 onNext = onNext,
@@ -600,6 +612,7 @@ private fun StrengthExerciseContent(
             NavigationButtons(
                 canGoBack = state.exerciseIndex > 0,
                 isLastExercise = state.exerciseIndex >= state.totalExercisesInPhase - 1,
+                isLastExerciseOverall = state.isLastExerciseOverall,
                 isCompleted = allConfirmed,
                 onPrev = onPrev,
                 onNext = onNext,
@@ -1001,10 +1014,22 @@ private fun ExerciseHeader(
 private fun NavigationButtons(
     canGoBack: Boolean,
     isLastExercise: Boolean,
+    isLastExerciseOverall: Boolean,
     isCompleted: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
 ) {
+    val buttonLabel = when {
+        isLastExerciseOverall -> stringResource(R.string.session_finish_session)
+        isLastExercise        -> stringResource(R.string.session_finish_phase)
+        else                  -> stringResource(R.string.session_next_exercise)
+    }
+    val buttonColor = when {
+        isLastExerciseOverall -> MaterialTheme.colorScheme.tertiary
+        isLastExercise        -> MaterialTheme.colorScheme.secondary
+        else                  -> MaterialTheme.colorScheme.primary
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1021,19 +1046,88 @@ private fun NavigationButtons(
             onClick = onNext,
             enabled = isCompleted,
             modifier = Modifier.weight(2f),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isLastExercise)
-                    MaterialTheme.colorScheme.secondary
-                else
-                    MaterialTheme.colorScheme.primary
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
         ) {
+            Text(buttonLabel)
+        }
+    }
+}
+
+// ── Encuesta post-sesión ─────────────────────────────────────────────────────────
+
+@Composable
+private fun SurveyContent(
+    onSubmit: (fatigue: Int, pain: Int, readiness: Int) -> Unit,
+    onSkip: () -> Unit,
+) {
+    var fatigueScore by remember { mutableFloatStateOf(5f) }
+    var painScore by remember { mutableFloatStateOf(0f) }
+    var readinessScore by remember { mutableFloatStateOf(3f) }
+
+    BackHandler(onBack = onSkip)
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
             Text(
-                if (isLastExercise)
-                    stringResource(R.string.session_finish_phase)
-                else
-                    stringResource(R.string.session_next_exercise)
+                text = stringResource(R.string.session_survey_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
+
+        item {
+            SurveySlider(
+                label = stringResource(R.string.session_survey_fatigue),
+                value = fatigueScore,
+                valueRange = 1f..10f,
+                steps = 8,
+                onValueChange = { fatigueScore = it }
+            )
+        }
+
+        item {
+            SurveySlider(
+                label = stringResource(R.string.session_survey_pain),
+                value = painScore,
+                valueRange = 0f..10f,
+                steps = 9,
+                onValueChange = { painScore = it }
+            )
+        }
+
+        item {
+            SurveySlider(
+                label = stringResource(R.string.session_survey_readiness),
+                value = readinessScore,
+                valueRange = 1f..5f,
+                steps = 3,
+                onValueChange = { readinessScore = it }
+            )
+        }
+
+        item {
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    onSubmit(
+                        fatigueScore.roundToInt(),
+                        painScore.roundToInt(),
+                        readinessScore.roundToInt()
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.session_save_close),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
         }
     }
 }
@@ -1045,10 +1139,6 @@ private fun SummaryContent(
     summary: SessionSummary,
     onClose: () -> Unit,
 ) {
-    var fatigueScore by remember { mutableFloatStateOf(5f) }
-    var painScore by remember { mutableFloatStateOf(0f) }
-    var readinessScore by remember { mutableFloatStateOf(3f) }
-
     val durationMinutes = summary.durationMs / 60_000
     val durationSeconds = (summary.durationMs % 60_000) / 1_000
 
@@ -1101,53 +1191,13 @@ private fun SummaryContent(
         }
 
         item {
-            HorizontalDivider()
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.session_survey_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        item {
-            SurveySlider(
-                label = stringResource(R.string.session_survey_fatigue),
-                value = fatigueScore,
-                valueRange = 1f..10f,
-                steps = 8,
-                onValueChange = { fatigueScore = it }
-            )
-        }
-
-        item {
-            SurveySlider(
-                label = stringResource(R.string.session_survey_pain),
-                value = painScore,
-                valueRange = 0f..10f,
-                steps = 9,
-                onValueChange = { painScore = it }
-            )
-        }
-
-        item {
-            SurveySlider(
-                label = stringResource(R.string.session_survey_readiness),
-                value = readinessScore,
-                valueRange = 1f..5f,
-                steps = 3,
-                onValueChange = { readinessScore = it }
-            )
-        }
-
-        item {
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = stringResource(R.string.session_save_close),
+                    text = stringResource(R.string.session_summary_close),
                     style = MaterialTheme.typography.titleMedium
                 )
             }

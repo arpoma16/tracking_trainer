@@ -74,8 +74,13 @@ sealed interface SesionActivaUiState {
         /** RIR objetivo para mostrar como referencia en ejercicios STRENGTH. */
         val targetRir: Int? = null,
         /** Descanso en segundos configurado para este ejercicio. */
-        val restSec: Int = 90
+        val restSec: Int = 90,
+        /** True cuando es el último ejercicio de la última fase con contenido. */
+        val isLastExerciseOverall: Boolean = false,
     ) : SesionActivaUiState
+
+    /** Todos los ejercicios completados; pendiente de rellenar encuesta post-sesión. */
+    data object SurveyPending : SesionActivaUiState
 
     /** Resumen final mostrado tras cerrar la sesión. */
     data class Summary(val data: SessionSummary) : SesionActivaUiState

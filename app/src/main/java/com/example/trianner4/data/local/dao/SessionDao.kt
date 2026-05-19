@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 abstract class SessionDao {
 
-    // ── Inserts internos (solo el @Transaction los llama) ─────────────────────
+    // ── Inserts / deletes internos (solo los @Transaction los llaman) ───────────
 
     @Insert
     protected abstract suspend fun insertSession(session: SessionEntity): Long
@@ -21,6 +21,9 @@ abstract class SessionDao {
     protected abstract suspend fun insertSnapshots(
         snapshots: List<SessionExerciseSnapshotEntity>
     ): List<Long>
+
+    @Query("DELETE FROM session_exercise_snapshot WHERE sessionId = :sessionId")
+    protected abstract suspend fun deleteSnapshotsForSession(sessionId: Long)
 
     // ── Transacción clave: crear sesión + congelar snapshot del día ───────────
     //
@@ -40,6 +43,22 @@ abstract class SessionDao {
             insertSnapshots(snapshots.map { it.copy(sessionId = sessionId) })
         }
         return sessionId
+    }
+
+    // ── Reemplazar snapshots (solo si aún no hay logs — sesión sin iniciar) ─────
+    //
+    // Usado cuando la rutina cambia después de crear la sesión pero antes de
+    // registrar cualquier serie. Operación atómica: borra los snapshots anteriores
+    // e inserta los nuevos con el mismo sessionId.
+    @Transaction
+    open suspend fun replaceSnapshots(
+        sessionId: Long,
+        snapshots: List<SessionExerciseSnapshotEntity>
+    ) {
+        deleteSnapshotsForSession(sessionId)
+        if (snapshots.isNotEmpty()) {
+            insertSnapshots(snapshots.map { it.copy(sessionId = sessionId) })
+        }
     }
 
     // ── Cierre de sesión (escribe agregados, marca como inmutable) ────────────
@@ -81,6 +100,14 @@ abstract class SessionDao {
     /** Sesión registrada en una fecha específica (epoch millis de medianoche). */
     @Query("SELECT * FROM session WHERE date = :dateEpoch LIMIT 1")
     abstract suspend fun getByDate(dateEpoch: Long): SessionEntity?
+
+    /** Flow reactivo: emite la sesión de un día concreto cada vez que cambia. */
+    @Query("SELECT * FROM session WHERE date = :dateEpoch LIMIT 1")
+    abstract fun observeByDate(dateEpoch: Long): Flow<SessionEntity?>
+
+    /** Flow reactivo: todas las sesiones de un día (puede haber varias rutinas). */
+    @Query("SELECT * FROM session WHERE date = :dateEpoch")
+    abstract fun observeAllByDate(dateEpoch: Long): Flow<List<SessionEntity>>
 
     /** Stream de todas las sesiones, descendente, para el Calendario. */
     @Query("SELECT * FROM session ORDER BY date DESC")

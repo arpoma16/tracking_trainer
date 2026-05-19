@@ -101,6 +101,7 @@
     <string name="session_reps_target">%1$d repeticiones</string>
     <string name="session_next_exercise">Siguiente ejercicio</string>
     <string name="session_finish_phase">Finalizar fase</string>
+    <string name="session_finish_session">Finalizar sesión</string>
     <string name="session_prev_exercise">Anterior</string>
 
     <!-- Fase Núcleo — tabla de series -->
@@ -131,6 +132,9 @@
     <string name="session_survey_pain">Dolor / molestia general</string>
     <string name="session_survey_readiness">Disposición para mañana</string>
     <string name="session_save_close">Guardar y cerrar</string>
+    <string name="session_summary_close">Cerrar</string>
+    <string name="today_session_done">✓ Entrenamiento completado hoy</string>
+    <string name="today_session_done_detail">¡Buen trabajo! Ya completaste el entrenamiento de hoy.</string>
 
     <!-- Error -->
     <string name="session_error_no_routine">No hay rutina activa para iniciar sesión.</string>

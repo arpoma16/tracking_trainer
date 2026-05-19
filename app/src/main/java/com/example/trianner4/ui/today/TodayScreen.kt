@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -85,7 +86,7 @@ fun TodayScreenContent(
         is TodayUiState.NoRoutineToday -> NoRoutineContent(state)
         is TodayUiState.Ready -> ReadyContent(
             state,
-            onStartSession = { onStartSession(state.routineId) },
+            onStartSession = onStartSession,
             onReportDiscomfort = onReportDiscomfort,
         )
     }
@@ -95,22 +96,41 @@ fun TodayScreenContent(
 @Composable
 private fun TodayScreenReadyPreview() {
     val mockState = TodayUiState.Ready(
-        routineId = 1,
-        routineName = "Empuje (Pecho/Hombro)",
+        routines = listOf(
+            TodayRoutineItem(
+                routineId = 1,
+                routineName = "Empuje (Pecho/Hombro)",
+                plan = AdaptedPlan(
+                    preExercises = listOf(
+                        ExerciseItem(1, "Movilidad Hombro", ExerciseType.STRENGTH, TrackingMode.FIXED_REPS, targetSets = 2, targetReps = 10)
+                    ),
+                    coreExercises = listOf(
+                        ExerciseItem(2, "Press Banca", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, targetSets = 3, targetReps = 8),
+                        ExerciseItem(3, "Aperturas", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, targetSets = 3, targetReps = 12)
+                    ),
+                    postExercises = emptyList(),
+                    isAdapted = false,
+                    discomfortLabels = emptyList()
+                ),
+                isDone = false
+            ),
+            TodayRoutineItem(
+                routineId = 2,
+                routineName = "Cardio Ligero",
+                plan = AdaptedPlan(
+                    preExercises = emptyList(),
+                    coreExercises = listOf(
+                        ExerciseItem(4, "Bicicleta", ExerciseType.ASSISTIVE, TrackingMode.TIMER, targetDurationSec = 1200)
+                    ),
+                    postExercises = emptyList(),
+                    isAdapted = false,
+                    discomfortLabels = emptyList()
+                ),
+                isDone = true
+            )
+        ),
         dayStatus = DayStatus.TRAINING,
         streak = StreakData(5, 85),
-        plan = AdaptedPlan(
-            preExercises = listOf(
-                ExerciseItem(1, "Movilidad Hombro", ExerciseType.STRENGTH, TrackingMode.FIXED_REPS, targetSets = 2, targetReps = 10)
-            ),
-            coreExercises = listOf(
-                ExerciseItem(2, "Press Banca", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, targetSets = 3, targetReps = 8),
-                ExerciseItem(3, "Aperturas", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, targetSets = 3, targetReps = 12)
-            ),
-            postExercises = emptyList(),
-            isAdapted = false,
-            discomfortLabels = emptyList()
-        )
     )
     Trianner4Theme {
         Surface {
@@ -123,25 +143,30 @@ private fun TodayScreenReadyPreview() {
 @Composable
 private fun TodayScreenAdaptedPreview() {
     val mockState = TodayUiState.Ready(
-        routineId = 1,
-        routineName = "Tren Inferior",
+        routines = listOf(
+            TodayRoutineItem(
+                routineId = 1,
+                routineName = "Tren Inferior",
+                plan = AdaptedPlan(
+                    preExercises = listOf(
+                        ExerciseItem(1, "Movilidad Cadera", ExerciseType.ASSISTIVE, TrackingMode.TIMER, targetDurationSec = 120),
+                        ExerciseItem(2, "Activación VMO", ExerciseType.ASSISTIVE, TrackingMode.TIMER, isInjected = true, discomfortLabel = "Condromalacia", targetDurationSec = 90),
+                    ),
+                    coreExercises = listOf(
+                        ExerciseItem(3, "Sentadilla", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, effectiveLoadFactor = 0.7, targetSets = 3, targetReps = 8),
+                        ExerciseItem(4, "Prensa", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, effectiveLoadFactor = 0.7, targetSets = 3, targetReps = 10),
+                    ),
+                    postExercises = listOf(
+                        ExerciseItem(5, "Liberación cuádriceps", ExerciseType.ASSISTIVE, TrackingMode.TIMER, isInjected = true, discomfortLabel = "Condromalacia", targetDurationSec = 120),
+                    ),
+                    isAdapted = true,
+                    discomfortLabels = listOf("Condromalacia rotuliana")
+                ),
+                isDone = false
+            )
+        ),
         dayStatus = DayStatus.ADAPTED,
         streak = StreakData(14, 92),
-        plan = AdaptedPlan(
-            preExercises = listOf(
-                ExerciseItem(1, "Movilidad Cadera", ExerciseType.ASSISTIVE, TrackingMode.TIMER, targetDurationSec = 120),
-                ExerciseItem(2, "Activación VMO", ExerciseType.ASSISTIVE, TrackingMode.TIMER, isInjected = true, discomfortLabel = "Condromalacia", targetDurationSec = 90),
-            ),
-            coreExercises = listOf(
-                ExerciseItem(3, "Sentadilla", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, effectiveLoadFactor = 0.7, targetSets = 3, targetReps = 8),
-                ExerciseItem(4, "Prensa", ExerciseType.STRENGTH, TrackingMode.WEIGHT_REPS, effectiveLoadFactor = 0.7, targetSets = 3, targetReps = 10),
-            ),
-            postExercises = listOf(
-                ExerciseItem(5, "Liberación cuádriceps", ExerciseType.ASSISTIVE, TrackingMode.TIMER, isInjected = true, discomfortLabel = "Condromalacia", targetDurationSec = 120),
-            ),
-            isAdapted = true,
-            discomfortLabels = listOf("Condromalacia rotuliana")
-        )
     )
     Trianner4Theme {
         Surface {
@@ -195,10 +220,10 @@ private fun NoRoutineContent(state: TodayUiState.NoRoutineToday) {
 @Composable
 private fun ReadyContent(
     state: TodayUiState.Ready,
-    onStartSession: () -> Unit = {},
+    onStartSession: (routineId: Long) -> Unit = {},
     onReportDiscomfort: () -> Unit = {},
 ) {
-    var showAdaptationSheet by remember { mutableStateOf(false) }
+    val allDone = state.routines.all { it.isDone }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -208,58 +233,37 @@ private fun ReadyContent(
         ) {
             item { DayStatusHeader(state.dayStatus) }
             item { state.streak?.let { StreakCard(it) } }
-            if (state.plan.isAdapted) {
-                item {
-                    AdaptationBanner(
-                        discomfortLabels = state.plan.discomfortLabels,
-                        onClick = { showAdaptationSheet = true }
-                    )
-                }
-            }
-            item { RoutinePreviewCard(state) }
-        }
-
-        // Botones sticky en el fondo
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onStartSession,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = stringResource(R.string.today_cta_start),
-                    style = MaterialTheme.typography.titleMedium
+            items(state.routines) { routine ->
+                RoutineCard(
+                    item = routine,
+                    onStartSession = { onStartSession(routine.routineId) }
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+        }
+
+        // Botones secundarios sticky en el fondo
+        if (!allDone) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = onReportDiscomfort) {
-                    Text(stringResource(R.string.today_btn_report_discomfort))
-                }
-                TextButton(onClick = { /* saltar a descanso — implementar con TodayViewModel */ }) {
-                    Text(stringResource(R.string.today_btn_skip_to_rest))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    OutlinedButton(onClick = onReportDiscomfort) {
+                        Text(stringResource(R.string.today_btn_report_discomfort))
+                    }
+                    TextButton(onClick = { }) {
+                        Text(stringResource(R.string.today_btn_skip_to_rest))
+                    }
                 }
             }
         }
-    }
-
-    if (showAdaptationSheet) {
-        AdaptationDetailSheet(
-            plan = state.plan,
-            onDismiss = { showAdaptationSheet = false },
-            onStartSession = {
-                showAdaptationSheet = false
-                onStartSession()
-            }
-        )
     }
 }
 
@@ -349,6 +353,125 @@ private fun StreakItem(value: Int, label: String, icon: String) {
 }
 
 @Composable
+private fun RoutineCard(
+    item: TodayRoutineItem,
+    onStartSession: () -> Unit = {},
+) {
+    var showAdaptationSheet by remember { mutableStateOf(false) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header: name + status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = item.routineName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                RoutineStatusBadge(isDone = item.isDone)
+            }
+
+            // Adaptation banner inline
+            if (item.plan.isAdapted) {
+                AdaptationBanner(
+                    discomfortLabels = item.plan.discomfortLabels,
+                    onClick = { showAdaptationSheet = true }
+                )
+            }
+
+            PhaseSummaryRow(
+                preCount = item.plan.preExercises.size,
+                coreCount = item.plan.coreExercises.size,
+                postCount = item.plan.postExercises.size,
+                injectedPreCount = item.plan.preExercises.count { it.isInjected },
+                injectedPostCount = item.plan.postExercises.count { it.isInjected }
+            )
+
+            if (item.plan.preExercises.isNotEmpty()
+                || item.plan.coreExercises.isNotEmpty()
+                || item.plan.postExercises.isNotEmpty()
+            ) {
+                HorizontalDivider()
+                PhaseExerciseList(stringResource(R.string.phase_pre), item.plan.preExercises)
+                PhaseExerciseList(stringResource(R.string.phase_core), item.plan.coreExercises)
+                PhaseExerciseList(stringResource(R.string.phase_post), item.plan.postExercises)
+            }
+
+            HorizontalDivider()
+
+            // Per-routine CTA
+            if (item.isDone) {
+                Button(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.today_session_done),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onStartSession,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.today_cta_start),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAdaptationSheet) {
+        AdaptationDetailSheet(
+            plan = item.plan,
+            onDismiss = { showAdaptationSheet = false },
+            onStartSession = {
+                showAdaptationSheet = false
+                onStartSession()
+            }
+        )
+    }
+}
+
+@Composable
+private fun RoutineStatusBadge(isDone: Boolean) {
+    val (text, bgColor, textColor) = if (isDone) {
+        Triple("✓ Completada", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+    } else {
+        Triple("⏳ Pendiente", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = bgColor
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = textColor,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
 private fun AdaptationBanner(discomfortLabels: List<String>, onClick: () -> Unit = {}) {
     val joined = discomfortLabels.joinToString(", ")
     Surface(
@@ -380,48 +503,6 @@ private fun AdaptationBanner(discomfortLabels: List<String>, onClick: () -> Unit
     }
 }
 
-@Composable
-private fun RoutinePreviewCard(state: TodayUiState.Ready) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = state.routineName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            PhaseSummaryRow(
-                preCount = state.plan.preExercises.size,
-                coreCount = state.plan.coreExercises.size,
-                postCount = state.plan.postExercises.size,
-                injectedPreCount = state.plan.preExercises.count { it.isInjected },
-                injectedPostCount = state.plan.postExercises.count { it.isInjected }
-            )
-
-            if (state.plan.preExercises.isNotEmpty()
-                || state.plan.coreExercises.isNotEmpty()
-                || state.plan.postExercises.isNotEmpty()
-            ) {
-                HorizontalDivider()
-                PhaseExerciseList(
-                    phaseLabel = stringResource(R.string.phase_pre),
-                    exercises = state.plan.preExercises
-                )
-                PhaseExerciseList(
-                    phaseLabel = stringResource(R.string.phase_core),
-                    exercises = state.plan.coreExercises
-                )
-                PhaseExerciseList(
-                    phaseLabel = stringResource(R.string.phase_post),
-                    exercises = state.plan.postExercises
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun PhaseSummaryRow(

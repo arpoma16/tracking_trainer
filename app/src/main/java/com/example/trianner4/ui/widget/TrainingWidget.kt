@@ -102,7 +102,7 @@ class TrainingWidget : GlanceAppWidget() {
                 when (state) {
                     is TodayUiState.Ready -> {
                         Text(
-                            text = "Hoy: ${state.routineName}",
+                            text = "Hoy: ${state.routines.firstOrNull()?.routineName ?: ""}",
                             style = TextStyle(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,

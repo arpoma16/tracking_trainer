@@ -12,6 +12,7 @@ import com.example.trianner4.data.local.entity.BodyZoneEntity
 import com.example.trianner4.data.local.entity.BiomechanicalChainEntity
 import com.example.trianner4.data.local.seeders.BodyZoneSeeder
 import com.example.trianner4.data.local.seeders.BiomechanicalChainSeeder
+import com.example.trianner4.data.local.seeders.ExerciseSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -104,6 +105,7 @@ class ExerciseViewModel @Inject constructor(
             try {
                 BodyZoneSeeder.seed(bodyZoneDao)
                 BiomechanicalChainSeeder.seed(biomechanicalChainDao)
+                ExerciseSeeder.seed(exerciseDao, bodyZoneDao, biomechanicalChainDao)
                 val bodyZones = bodyZoneDao.getAll().first()
                 val chains = biomechanicalChainDao.observeAll().first()
                 _uiState.value = ExerciseUiState.Ready(

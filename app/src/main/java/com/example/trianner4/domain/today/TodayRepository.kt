@@ -10,6 +10,7 @@ import com.example.trianner4.data.local.entity.RoutineScheduleEntity
 import com.example.trianner4.ui.today.AdaptedPlan
 import com.example.trianner4.ui.today.DayStatus
 import com.example.trianner4.ui.today.StreakData
+import com.example.trianner4.ui.today.TodayRoutineItem
 import com.example.trianner4.ui.today.TodayUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -65,69 +66,76 @@ class TodayRepository @Inject constructor(
 
                 val activeDeload = statusDao.getActiveDeload(todayEpoch)
 
-                // Buscar la primera rutina activa programada para hoy
-                val todayRoutine = routines.firstOrNull { routine ->
+                // Todas las rutinas activas programadas para hoy
+                val todayRoutines = routines.filter { routine ->
                     routineDao.getSchedulesForRoutine(routine.id)
                         .any { isScheduledToday(it, today) }
                 }
 
-                if (todayRoutine == null) {
+                if (todayRoutines.isEmpty()) {
                     val status = if (activeDeload != null) DayStatus.DELOAD else DayStatus.REST
                     emit(TodayUiState.NoRoutineToday(status, streakData))
                     return@flow
                 }
 
-                val routineExercises = routineDao.getPhaseExercisesWithExercise(todayRoutine.id)
+                val routineItems = mutableListOf<TodayRoutineItem>()
+                var overallDayStatus: DayStatus =
+                    if (activeDeload != null) DayStatus.DELOAD else DayStatus.TRAINING
 
-                val plan: AdaptedPlan
-                val dayStatus: DayStatus
+                for (routine in todayRoutines) {
+                    val routineExercises = routineDao.getPhaseExercisesWithExercise(routine.id)
+                    val plan: AdaptedPlan
+                    val routineStatus: DayStatus
 
-                when {
-                    discomforts.isNotEmpty() -> {
-                        val affected = exerciseDao
-                            .getExercisesAffectedByActiveDiscomforts(todayRoutine.id)
-                        val injectablePre = exerciseDao
-                            .getInjectablePreExercises(todayRoutine.id)
-                        val injectablePost = exerciseDao
-                            .getInjectablePostExercises(todayRoutine.id)
-
-                        plan = resolver.resolve(
-                            routineExercises,
-                            discomforts,
-                            affected,
-                            injectablePre,
-                            injectablePost
-                        )
-                        dayStatus = if (plan.isAdapted) DayStatus.ADAPTED else DayStatus.TRAINING
+                    when {
+                        discomforts.isNotEmpty() -> {
+                            val affected = exerciseDao
+                                .getExercisesAffectedByActiveDiscomforts(routine.id)
+                            val injectablePre = exerciseDao
+                                .getInjectablePreExercises(routine.id)
+                            val injectablePost = exerciseDao
+                                .getInjectablePostExercises(routine.id)
+                            plan = resolver.resolve(
+                                routineExercises, discomforts, affected, injectablePre, injectablePost
+                            )
+                            routineStatus = if (plan.isAdapted) DayStatus.ADAPTED else DayStatus.TRAINING
+                        }
+                        activeDeload != null -> {
+                            val base = resolver.resolve(
+                                routineExercises, emptyList(), emptyList(), emptyList(), emptyList()
+                            )
+                            plan = base.copy(
+                                coreExercises = base.coreExercises.map {
+                                    it.copy(effectiveLoadFactor = activeDeload.loadFactor)
+                                }
+                            )
+                            routineStatus = DayStatus.DELOAD
+                        }
+                        else -> {
+                            plan = resolver.resolve(
+                                routineExercises, emptyList(), emptyList(), emptyList(), emptyList()
+                            )
+                            routineStatus = DayStatus.TRAINING
+                        }
                     }
 
-                    activeDeload != null -> {
-                        val base = resolver.resolve(
-                            routineExercises, emptyList(), emptyList(), emptyList(), emptyList()
-                        )
-                        plan = base.copy(
-                            coreExercises = base.coreExercises.map {
-                                it.copy(effectiveLoadFactor = activeDeload.loadFactor)
-                            }
-                        )
-                        dayStatus = DayStatus.DELOAD
-                    }
+                    routineItems += TodayRoutineItem(
+                        routineId = routine.id,
+                        routineName = routine.name,
+                        plan = plan,
+                    )
 
-                    else -> {
-                        plan = resolver.resolve(
-                            routineExercises, emptyList(), emptyList(), emptyList(), emptyList()
-                        )
-                        dayStatus = DayStatus.TRAINING
-                    }
+                    // ADAPTED > DELOAD > TRAINING for the day-level header
+                    if (routineStatus == DayStatus.ADAPTED) overallDayStatus = DayStatus.ADAPTED
+                    else if (routineStatus == DayStatus.DELOAD && overallDayStatus == DayStatus.TRAINING)
+                        overallDayStatus = DayStatus.DELOAD
                 }
 
                 emit(
                     TodayUiState.Ready(
-                        routineId = todayRoutine.id,
-                        routineName = todayRoutine.name,
-                        dayStatus = dayStatus,
+                        routines = routineItems,
+                        dayStatus = overallDayStatus,
                         streak = streakData,
-                        plan = plan
                     )
                 )
             }

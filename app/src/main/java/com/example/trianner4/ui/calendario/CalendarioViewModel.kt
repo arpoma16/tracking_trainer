@@ -102,5 +102,9 @@ class CalendarioViewModel @Inject constructor(
         month.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     private fun monthEndEpoch(month: YearMonth): Long =
-        month.atEndOfMonth().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        month.atEndOfMonth()
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
 }

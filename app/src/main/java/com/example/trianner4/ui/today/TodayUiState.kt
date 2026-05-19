@@ -31,6 +31,13 @@ data class AdaptedPlan(
     val discomfortLabels: List<String>
 )
 
+data class TodayRoutineItem(
+    val routineId: Long,
+    val routineName: String,
+    val plan: AdaptedPlan,
+    val isDone: Boolean = false,
+)
+
 sealed interface TodayUiState {
     data object Loading : TodayUiState
 
@@ -40,10 +47,8 @@ sealed interface TodayUiState {
     ) : TodayUiState
 
     data class Ready(
-        val routineId: Long,
-        val routineName: String,
+        val routines: List<TodayRoutineItem>,
         val dayStatus: DayStatus,
         val streak: StreakData?,
-        val plan: AdaptedPlan
     ) : TodayUiState
 }
